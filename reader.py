@@ -12,13 +12,15 @@ class BaseReader(ABC):
             self.file.readline()
     
     def __del__(self):
-        self.file.close()
+        if not self.__eof:
+            self.file.close()
     
     def is_eof(self):
         return self.__eof
     
     def set_eof(self):
         self.__eof = True
+        self.file.close()
     
     @abstractmethod
     def read_sentence(self):
@@ -43,15 +45,19 @@ class KJVReader(BaseReader):
         eos = self.buffer.find('.')
         while eos == -1:
             line = self.file.readline()
-            if line == '':
+            if line == '*** END OF THE PROJECT GUTENBERG EBOOK THE KING JAMES VERSION OF THE BIBLE ***\n':
                 self.set_eof()
                 return ''
-            if self.titles.has_key(line) or self.space_pattern.fullmatch(line):
+            while self.titles.has_key(line) or self.space_pattern.fullmatch(line) or line == '***\n':
                 line = self.file.readline()
+                if line == '*** END OF THE PROJECT GUTENBERG EBOOK THE KING JAMES VERSION OF THE BIBLE ***\n':
+                    self.set_eof()
+                    return ''
             verses = self.verse_pattern.split(line)
             for v in verses:
-                v = v.lstrip()
-                self.buffer += self.space_pattern.sub(' ', v)
+                v = v.strip()
+                if v:
+                    self.buffer += v + ' '
             eos = self.buffer.find('.')
         
         output = self.buffer[:eos+1]
