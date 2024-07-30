@@ -26,6 +26,14 @@ class BaseReader(ABC):
     def read_sentence(self):
         return
 
+class BCPReader(BaseReader):
+    def __init__(self):
+        super().__init__('bcp.txt', 'utf-8')
+        # TODO: '&c.' must be recognized as a distinct word
+
+    def read_sentences(self):
+        # TODO
+
 class KJVReader(BaseReader):
     def __init__(self):
         super().__init__('kjv.txt', 'utf-8', 20)
