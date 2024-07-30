@@ -22,7 +22,7 @@ The King James Version of the Bible. From Project Gutenberg. More information is
 
 ## shakespeare.txt
 
-The complete works of William Shakespeare. From Project Gutenberg. More information is included in the text file.
+The Complete Works of William Shakespeare. From Project Gutenberg. More information is included in the text file.
 
 ## udhr_eng.txt
 
