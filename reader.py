@@ -29,10 +29,26 @@ class BaseReader(ABC):
 class BCPReader(BaseReader):
     def __init__(self):
         super().__init__('bcp.txt', 'utf-8')
-        # TODO: '&c.' must be recognized as a distinct word
 
-    def read_sentences(self):
-        # TODO
+    def read_sentence(self):
+        if self.is_eof():
+            return ''
+        
+        if self.buffer == '':
+            self.buffer = self.file.readline()
+            while len(self.buffer) != 0 and (self.buffer[0] == '\n' or self.buffer[0] == '#'):
+                self.buffer = self.file.readline()
+        
+        # End of file reached
+        if self.buffer == '':
+            self.set_eof()
+            return ''
+        
+        # First sentence of the buffer returned
+        eos = self.buffer.find('.')
+        output = self.buffer[:eos+1]
+        self.buffer = self.buffer[eos+2:]
+        return output
 
 class KJVReader(BaseReader):
     def __init__(self):
@@ -71,6 +87,15 @@ class KJVReader(BaseReader):
         output = self.buffer[:eos+1]
         self.buffer = self.buffer[eos+2:]
         return output
+
+class ShakespeareReader(BaseReader):
+    def __init__(self):
+        # TODO
+        pass
+    
+    def read_sentence(self):
+        # TODO
+        pass
 
 class UDHREngReader(BaseReader):
     def __init__(self):
