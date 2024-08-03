@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import string
 import re
 import pygtrie
 
@@ -90,12 +91,70 @@ class KJVReader(BaseReader):
 
 class ShakespeareReader(BaseReader):
     def __init__(self):
-        # TODO
-        pass
+        super().__init__('shakespeare.txt', 'utf-8', 31)
+        
+        self.titles = pygtrie.StringTrie()
+        for _ in range(44):
+            self.titles[self.file.readline().strip()] = None
+        
+        # 0: sonnets, 1: plays, 2: poems
+        self.stage = 0
     
     def read_sentence(self):
-        # TODO
-        pass
+        if self.is_eof():
+            return ''
+        
+        eos = self.buffer.find('.')
+        while eos == -1:
+            while True:
+                line = self.file.readline().strip()
+                if self.titles.has_key(line):
+                    if line == 'ALL’S WELL THAT ENDS WELL':
+                        self.stage = 1
+                    elif line == 'A LOVER’S COMPLAINT':
+                        self.stage = 2
+                elif line != '':
+                    if self.stage == 0:
+                        if (not line.isdigit()) and line != 'THE END':
+                            break
+                    elif self.stage == 1:
+                        if line[:3] != 'ACT' and line[:5] != 'SCENE' and not line.isupper():
+                            open_bracket = line.find('[')
+                            close_bracket = line.find(']')
+                            while open_bracket != 1:
+                                if close_bracket != -1:
+                                    line = line[:open_bracket].strip() + ' ' + line[close_bracket+1:].strip()
+                                else:
+                                    line = line[:open_bracket].strip() + ' '
+                                    next_part = self.file.readline().strip()
+                                    close_bracket = next_part.find(']')
+                                    while close_bracket == -1:
+                                        next_part = self.file.readline().strip()
+                                        close_bracket = next_part.find(']')
+                                    line += next_part[close_bracket+1:].strip()
+                                open_bracket = line.find('[')
+                                close_bracket = line.find(']')
+                            line.replace('_', '')
+                            if line != '':
+                                break
+                    else:
+                        if line[:23] == 'TO THE RIGHT HONOURABLE':
+                            for _ in range(2):
+                                self.file.readline()
+                        if line[:15] == 'Your Lordship’s' or line[:6] == '_Vilia' or line[:25] == 'Your honour’s in all duty':
+                            self.file.readline()
+                        if line == '*** END OF THE PROJECT GUTENBERG EBOOK THE COMPLETE WORKS OF WILLIAM SHAKESPEARE ***':
+                            self.set_eof()
+                            return ''
+                        if (not line.isupper()) and line[:2] != '* ':
+                            line.rstrip(string.digits + string.whitespace)
+                            break
+            self.buffer += line + ' '
+            eos = self.buffer.find('.')
+        
+        output = self.buffer[:eos+1]
+        self.buffer = self.buffer[eos+2:]
+        return output
 
 class UDHREngReader(BaseReader):
     def __init__(self):
