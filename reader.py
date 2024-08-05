@@ -38,7 +38,7 @@ class BCPReader(BaseReader):
         
         if self.buffer == '':
             self.buffer = self.file.readline()
-            while len(self.buffer) != 0 and (self.buffer[0] == '\n' or self.buffer[0] == '#'):
+            while self.buffer != '' and (self.buffer[0] == '\n' or self.buffer[0] == '#'):
                 self.buffer = self.file.readline()
         
         # End of file reached
