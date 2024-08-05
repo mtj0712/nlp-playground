@@ -8,6 +8,7 @@ class BaseReader(ABC):
         self.file = open('data/' + filename, 'r', encoding=encoding)
         self.buffer = ''
         self.space_pattern = re.compile('\\s+')
+        self.end_mark_pattern = re.compile('\\!|\\.|\\?')
         self.__eof = False
         for _ in range(skiplines):
             self.file.readline()
@@ -46,9 +47,10 @@ class BCPReader(BaseReader):
             return ''
         
         # First sentence of the buffer returned
-        eos = self.buffer.find('.')
-        output = self.buffer[:eos+1]
-        self.buffer = self.buffer[eos+2:]
+        eos = self.end_mark_pattern.search(self.buffer)
+        i = eos.start()
+        output = self.buffer[:i+1]
+        self.buffer = self.buffer[i+2:]
         return output
 
 class KJVReader(BaseReader):
@@ -67,8 +69,8 @@ class KJVReader(BaseReader):
         if self.is_eof():
             return ''
         
-        eos = self.buffer.find('.')
-        while eos == -1:
+        eos = self.end_mark_pattern.search(self.buffer)
+        while eos == None:
             line = self.file.readline()
             if line == '*** END OF THE PROJECT GUTENBERG EBOOK THE KING JAMES VERSION OF THE BIBLE ***\n':
                 self.set_eof()
@@ -83,10 +85,11 @@ class KJVReader(BaseReader):
                 v = v.strip()
                 if v:
                     self.buffer += v + ' '
-            eos = self.buffer.find('.')
+            eos = self.end_mark_pattern.search(self.buffer)
         
-        output = self.buffer[:eos+1]
-        self.buffer = self.buffer[eos+2:]
+        i = eos.start()
+        output = self.buffer[:i+1]
+        self.buffer = self.buffer[i+2:]
         return output
 
 class ShakespeareReader(BaseReader):
@@ -99,13 +102,20 @@ class ShakespeareReader(BaseReader):
         
         # 0: sonnets, 1: plays, 2: poems
         self.stage = 0
+        
+        self.play_beginnings = pygtrie.StringTrie([
+            ('ACT I', None),
+            ('INDUCTION', None),
+            ('PROLOGUE', None),
+            ('THE PROLOGUE', None)
+        ])
     
     def read_sentence(self):
         if self.is_eof():
             return ''
         
-        eos = self.buffer.find('.')
-        while eos == -1:
+        eos = self.end_mark_pattern.search(self.buffer)
+        while eos == None:
             while True:
                 line = self.file.readline().strip()
                 if self.titles.has_key(line):
@@ -113,25 +123,43 @@ class ShakespeareReader(BaseReader):
                         self.stage = 1
                     elif line == 'A LOVER’S COMPLAINT':
                         self.stage = 2
+                    
+                    if self.stage == 1:
+                        while self.file.readline().strip() != 'Dramatis Personæ':
+                            pass
+                        while not self.play_beginnings.has_key(self.file.readline().strip()):
+                            pass
+                    
                 elif line != '':
                     if self.stage == 0:
                         if (not line.isdigit()) and line != 'THE END':
                             break
                     elif self.stage == 1:
                         if line[:3] != 'ACT' and line[:5] != 'SCENE' and not line.isupper():
+                            # Below is a simple algorithm for removing square brackets and all texts within them.
+                            # This simple algorithm is justified because our text (data/shakespeare.txt) does not contain square brackets within another pair of square brackets.
                             open_bracket = line.find('[')
                             close_bracket = line.find(']')
-                            while open_bracket != 1:
+                            while open_bracket != -1:
+                                left_side = line[:open_bracket].strip()
                                 if close_bracket != -1:
-                                    line = line[:open_bracket].strip() + ' ' + line[close_bracket+1:].strip()
+                                    right_side = line[close_bracket+1:].strip()
+                                    if left_side == '':
+                                        line = right_side
+                                    elif right_side == '':
+                                        line = left_side
+                                    else:
+                                        line = left_side + ' ' + right_side
                                 else:
-                                    line = line[:open_bracket].strip() + ' '
-                                    next_part = self.file.readline().strip()
-                                    close_bracket = next_part.find(']')
+                                    line = left_side
                                     while close_bracket == -1:
                                         next_part = self.file.readline().strip()
                                         close_bracket = next_part.find(']')
-                                    line += next_part[close_bracket+1:].strip()
+                                    right_side = next_part[close_bracket+1:].strip()
+                                    if left_side != '' and right_side != '':
+                                        line += ' ' + right_side
+                                    else:
+                                        line += right_side
                                 open_bracket = line.find('[')
                                 close_bracket = line.find(']')
                             line.replace('_', '')
@@ -141,19 +169,21 @@ class ShakespeareReader(BaseReader):
                         if line[:23] == 'TO THE RIGHT HONOURABLE':
                             for _ in range(2):
                                 self.file.readline()
-                        if line[:15] == 'Your Lordship’s' or line[:6] == '_Vilia' or line[:25] == 'Your honour’s in all duty':
+                        elif line[:15] == 'Your Lordship’s' or line[:6] == '_Vilia' or line[:25] == 'Your honour’s in all duty':
                             self.file.readline()
-                        if line == '*** END OF THE PROJECT GUTENBERG EBOOK THE COMPLETE WORKS OF WILLIAM SHAKESPEARE ***':
+                        elif line == '*** END OF THE PROJECT GUTENBERG EBOOK THE COMPLETE WORKS OF WILLIAM SHAKESPEARE ***':
                             self.set_eof()
                             return ''
-                        if (not line.isupper()) and line[:2] != '* ':
-                            line.rstrip(string.digits + string.whitespace)
+                        elif (not line.isupper()) and line[:2] != '* ':
+                            line = line.rstrip(string.digits + string.whitespace)
                             break
-            self.buffer += line + ' '
-            eos = self.buffer.find('.')
+            if line != '':
+                self.buffer += line + ' '
+                eos = self.end_mark_pattern.search(self.buffer)
         
-        output = self.buffer[:eos+1]
-        self.buffer = self.buffer[eos+2:]
+        i = eos.start()
+        output = self.buffer[:i+1]
+        self.buffer = self.buffer[i+1:].lstrip()
         return output
 
 class UDHREngReader(BaseReader):

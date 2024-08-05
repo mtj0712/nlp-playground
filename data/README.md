@@ -28,6 +28,10 @@ The King James Version of the Bible. From Project Gutenberg. More information is
 
 The Complete Works of William Shakespeare. From Project Gutenberg. More information is included in the text file.
 
+To disambiguate the endings of the sentences, '&c.' is changed to '&c' whenever it is not the last word of a sentence. Thus all appearances of a period mark (.) indicate the end of a sentence.
+
+A period is added at the end of each of the sonnets that do not end with a period.
+
 ## udhr_eng.txt
 
 The Universal Declaration of Human Rights in English. Copied and pasted from https://www.ohchr.org/sites/default/files/UDHR/Documents/UDHR_Translations/eng.pdf.
