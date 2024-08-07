@@ -8,4 +8,4 @@ Here, I tried out a basic neural network with stochastic gradient descent. The r
 
 ## add_1_smoothing/
 
-Here, I am developing n-gram models based on two English corpora - King James Version of the Bible and the Universal Declaration of Human Rights - and apply add-one smoothing.
+Here, I develop n-gram models for Early Modern English and Modern English. The models for Early Modern English are based on The 1662 Book of Common Prayer, the King James Version of the Bible, and The Complete Works of Shakespeare. The models for Modern English are based on the Universal Declaration of Human Rights. Add-one smoothing method is tried on these models.
